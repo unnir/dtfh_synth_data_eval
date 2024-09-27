@@ -19,6 +19,8 @@ from reportlab.lib.utils import ImageReader
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Preformatted, Image
 from reportlab.lib import colors
+from sklearn.preprocessing import OrdinalEncoder
+
 
 @st.cache_data
 def load_data(original_file, synthetic_file, n_samples, n_features):
@@ -45,6 +47,31 @@ def load_data(original_file, synthetic_file, n_samples, n_features):
     df_orig = read_file(original_file, "original")
     df_syn = read_file(synthetic_file, "synthetic")
 
+
+    # Select features (prioritize numeric columns)
+    numeric_features = df_orig.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_features = df_orig.select_dtypes(exclude=[np.number]).columns.tolist()
+    selected_features = numeric_features[:n_features] + categorical_features[:max(0, n_features - len(numeric_features))]
+    
+    
+    encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
+        
+    # Fit the encoder on the original dataframe
+    encoder.fit(df_orig.select_dtypes(include=['object']))
+        
+    # Transform the original dataframe
+    df_orig_encoded = df_orig.copy()
+    df_orig_encoded[df_orig.select_dtypes(include=['object']).columns] = encoder.transform(df_orig.select_dtypes(include=['object']))
+        
+    # Transform the synthetic dataframe
+    df_syn_encoded = df_syn.copy()
+    df_syn_encoded[df_syn.select_dtypes(include=['object']).columns] = encoder.transform(df_syn.select_dtypes(include=['object']))
+        
+    # Convert encoded data back to dataframes
+    df_orig = df_orig_encoded.copy()
+    df_syn = df_syn_encoded.copy()
+
+
     if df_orig is None or df_syn is None:
         return None, None
 
@@ -64,10 +91,7 @@ def load_data(original_file, synthetic_file, n_samples, n_features):
     # Handle case where n_features is larger than available features
     n_features = min(n_features, len(common_columns))
     
-    # Select features (prioritize numeric columns)
-    numeric_features = df_orig.select_dtypes(include=[np.number]).columns.tolist()
-    categorical_features = df_orig.select_dtypes(exclude=[np.number]).columns.tolist()
-    selected_features = numeric_features[:n_features] + categorical_features[:max(0, n_features - len(numeric_features))]
+
     
     df_orig = df_orig[selected_features]
     df_syn = df_syn[selected_features]
