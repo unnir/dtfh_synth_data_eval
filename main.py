@@ -22,6 +22,39 @@ from reportlab.lib import colors
 from sklearn.preprocessing import OrdinalEncoder
 
 
+def drop_nans_max_data(df):
+
+    if not df.isnull().values.any():
+        print("No NaN values found in the DataFrame.")
+        return df
+        
+    # Calculate the percentage of non-NaN values for rows and columns
+    non_nan_rows = df.dropna(axis=0)
+    non_nan_cols = df.dropna(axis=1)
+    
+    row_retained_data = non_nan_rows.size / df.size
+    col_retained_data = non_nan_cols.size / df.size
+    
+    # Print the original size of the DataFrame
+    print(f"Original DataFrame size: {df.shape}")
+    
+    # Print size after dropping rows and columns
+    print(f"DataFrame size after dropping rows with NaNs: {non_nan_rows.shape}")
+    print(f"DataFrame size after dropping columns with NaNs: {non_nan_cols.shape}")
+    
+    # Print the percentage of data retained
+    print(f"Percentage of data retained by dropping rows: {row_retained_data:.2%}")
+    print(f"Percentage of data retained by dropping columns: {col_retained_data:.2%}")
+    
+    # Decide and print which option retains more data
+    if row_retained_data >= col_retained_data:
+        print("Dropping rows retains more or equal data.")
+        return non_nan_rows
+    else:
+        print("Dropping columns retains more data.")
+        return non_nan_cols
+
+
 @st.cache_data
 def load_data(original_file, synthetic_file, n_samples, n_features):
     def read_file(file, file_type):
@@ -47,6 +80,7 @@ def load_data(original_file, synthetic_file, n_samples, n_features):
     df_orig = read_file(original_file, "original")
     df_syn = read_file(synthetic_file, "synthetic")
 
+    df_orig = drop_nans_max_data(df_orig)
 
     # Select features (prioritize numeric columns)
     numeric_features = df_orig.select_dtypes(include=[np.number]).columns.tolist()
