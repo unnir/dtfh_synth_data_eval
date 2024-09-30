@@ -82,6 +82,9 @@ def load_data(original_file, synthetic_file, n_samples, n_features):
 
     df_orig = drop_nans_max_data(df_orig)
 
+    # align columns to be sure 
+    df_syn = df_syn[df_orig.columns]
+
     # Select features (prioritize numeric columns)
     numeric_features = df_orig.select_dtypes(include=[np.number]).columns.tolist()
     categorical_features = df_orig.select_dtypes(exclude=[np.number]).columns.tolist()
